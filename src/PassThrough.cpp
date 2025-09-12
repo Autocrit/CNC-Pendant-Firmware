@@ -1,14 +1,20 @@
 #include "PassThrough.h"
 
-// Store character and add to checksum and CRC. If no room, we will discover that when we try to append the newline, so no need to record overflow here.
-void PassThrough::StoreAndAddToChecksum(char c)
+// Add a character to the checksum and CRC
+void PassThrough::AddToChecksum(char c)
 {
   computedChecksum ^= c;
   computedCrc.Update(c);
+}
+
+// Store character and add to checksum and CRC. If no room, we will discover that when we try to append the newline, so no need to record overflow here.
+void PassThrough::StoreAndAddToChecksum(char c)
+{
   if (count < sizeof(buffer)/sizeof(buffer[0]))
   {
     buffer[count++] = c;
   }
+  AddToChecksum(c);
 }
 
 // Get the command and reset the state
@@ -46,14 +52,22 @@ unsigned int PassThrough::Check(HardwareSerial& serial)
           computedChecksum = 0;
           computedCrc.Reset(0);
           count = 0;
-          StoreAndAddToChecksum(c);
+          AddToChecksum(c);
         }
         break;
 
       case State::receivingLineNumber:
         if (c >= '0' && c <= '9')
         {
-          StoreAndAddToChecksum(c);
+          AddToChecksum(c);
+          break;
+        }
+        state = State::skippingSpaces;
+        __attribute__ ((fallthrough));
+      case State::skippingSpaces:
+        if (c == ' ' || c == '\t')
+        {
+          AddToChecksum(c);
           break;
         }
         state = State::receivingCommand;

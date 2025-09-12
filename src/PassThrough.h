@@ -12,12 +12,15 @@ public:
   const char *GetCommand();                       // Get the command and reset the state
   
 private:
+  void AddToChecksum(char c);
   void StoreAndAddToChecksum(char c);             // Store character and add to checksum. If no room, set the overflow flag.
+
   // Pass through data
   enum class State : uint8_t
   {
     waitingForStart = 0,
     receivingLineNumber,
+    skippingSpaces,
     receivingCommand,
     receivingQuotedString,
     receivingChecksumOrCrc,
