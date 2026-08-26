@@ -218,7 +218,7 @@ void loop()
   digitalWrite(PinLed, HIGH);
 
   // 2. Poll the feed amount switch
-  distanceMultiplier = 0;
+  distanceMultiplier = 1;
   int localDistanceMultiplier = 1;
   for (int pin : feedAmountPins)
   {
