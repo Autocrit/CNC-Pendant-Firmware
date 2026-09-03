@@ -1,92 +1,9 @@
-// CNC pendant interface to Duet
+// CNC pendant interface to grblHAL
 // D Crocker, started 2020-05-04
 
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
  * It should also work on an Arduino Uno (using the same wiring scheme as for the Nano) or Arduino Leonardo (using the same wiring scheme as for the Pro Micro).
- * The recommended board is the Arduino Pro Micro because the passthrough works without any modifications to the Arduino. 
-
-*** Pendant to Arduino Pro Micro connections ***
-
-Pro Micro Pendant   Wire colours
-VCC       +5V       red
-GND       0V,       black
-          COM,      orange/black
-          CN,       blue/black
-          LED-      white/black
-
-D2        A         green
-D3        B         white
-D4        X         yellow
-D5        Y         yellow/black
-D6        Z         brown
-D7        4         brown/black
-D8        5         powder (if present)
-D9        6         powder/black (if present)
-D10       LED+      green/black
-A0        STOP      blue
-A1        X1        grey
-A2        X10       grey/black
-A3        X100      orange
-
-NC        /A,       violet
-          /B        violet/black
-
-*** Arduino Pro Micro to Duet PanelDue connector connections ***
-
-Pro Micro Duet
-VCC       +5V
-GND       GND
-TX1/D0    Through 6K8 resistor to URXD, also connect 10K resistor between URXD and GND
-
-To connect a PanelDue as well:
-
-PanelDue +5V to +5V/VCC
-PanelDue GND to GND
-PanelDue DIN to Duet UTXD or IO_0_OUT
-PanelDue DOUT to /Pro Micro RX1/D0.
-
-*** Pendant to Arduino Nano connections ***
-
-Nano    Pendant   Wire colours
-+5V     +5V       red
-GND     0V,       black
-        COM,      orange/black
-        CN,       blue/black
-        LED-      white/black
-
-D2      A         green
-D3      B         white
-D4      X         yellow
-D5      Y         yellow/black
-D6      Z         brown
-D7      4         brown/black
-D8      5         powder (if present)
-D9      6         powder/black (if present)
-D10     X1        grey
-D11     X10       grey/black
-D12     X100      orange
-D13     LED+      green/black
-A0      STOP      blue
-
-NC      /A,       violet
-        /B        violet/black
-
-*** Arduino Nano to Duet PanelDue connector connections ***
-
-Nano    Duet
-+5V     +5V
-GND     GND
-TX1/D0  Through 6K8 resistor to URXD, also connect 10K resistor between URXD and GND
-
-To connect a PanelDue as well:
-
-PanelDue +5V to +5V
-PanelDue GND to GND
-PanelDue DIN to Duet UTXD or IO_0_OUT
-PanelDue DOUT to Nano/Pro Micro RX1/D0.
-
-On the Arduino Nano is necessary to replace the 1K resistor between the USB interface chip by a 10K resistor so that PanelDiue can override the USB chip.
-On Arduino Nano clones with CH340G chip, it is also necessary to remove the RxD LED or its series resistor.
+ * The recommended board is the Arduino Pro Micro because the passthrough works without any modifications to the Arduino.
 
 */
 
@@ -115,10 +32,9 @@ const int PinTimes100 = 12;
 const int PinLed = 13;
 #endif
 
-
-const unsigned long BaudRate = 57600;
+const unsigned long BaudRate = 115200;
 const int PulsesPerClick = 4;
-const unsigned long MinCommandInterval = 20;
+const unsigned long MinCommandInterval = 50;
 
 // Table of commands we send, one entry for each axis
 const char* const MoveCommands[] =
@@ -133,10 +49,8 @@ const char* const MoveCommands[] =
 
 #include "RotaryEncoder.h"
 #include "GCodeSerial.h"
-#include "PassThrough.h"
 
 RotaryEncoder encoder(PinA, PinB, PulsesPerClick);
-PassThrough passThrough;
 
 int serialBufferSize;
 int distanceMultiplier;
@@ -179,16 +93,6 @@ void setup()
 #endif
 }
 
-// Check for received data from PanelDue, store it in the pass through buffer, and send it if we have a complete command
-void checkPassThrough()
-{
-  unsigned int commandLength = passThrough.Check(UartSerial);
-  if (commandLength != 0 && UartSerial.availableForWrite() == serialBufferSize)
-  {
-    output.write(passThrough.GetCommand(), commandLength);
-  }
-}
-
 void loop()
 {
   // 0. Poll the encoder. Ideally we would do this in the tick ISR, but after all these years the Arduino core STILL doesn't let us hook it.
@@ -202,17 +106,17 @@ void loop()
     // Send emergency stop command every 2 seconds
     do
     {
-      output.write("M112 ;" "\xF0" "\x0F" "\n");
+      output.write(0x19);
       digitalWrite(PinLed, LOW);
       uint16_t now = (uint16_t)millis();
       while (digitalRead(PinStop) == HIGH && (uint16_t)millis() - now < 2000)
       {
-        checkPassThrough();
+        // Do nothing for now
       }
       encoder.getChange();      // ignore any movement
     } while (digitalRead(PinStop) == HIGH);
 
-    output.write("M999\n");
+    output.write("$X\n");
   }
 
   digitalWrite(PinLed, HIGH);
@@ -259,6 +163,7 @@ void loop()
         TXLED0;                     // turn on transmit LED
 #endif
         whenLastCommandSent = now;
+        output.write(0x8B); // Toggle MPG mode on
         output.write(MoveCommands[axis]);
         if (distance < 0)
         {
@@ -269,11 +174,10 @@ void loop()
         output.write('.');
         output.print(distance % 10);
         output.write('\n');
+        output.write(0x8B); // Toggle MPG mode off
       }
     }
   }
-
-  checkPassThrough();
 }
 
 // End

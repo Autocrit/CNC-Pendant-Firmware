@@ -3,17 +3,23 @@
 void GCodeSerial::begin(unsigned long baud)
 {
   serial.begin(baud);
+#if USE_CRC16 || USE_CHECKSUM
   lineNumber = 0;
+#endif
 #if USE_CRC16
   crc.Reset(0);
-#else
+#elif USE_CHECKSUM
   checksum = 0;
 #endif
+
+#if USE_CRC16 || USE_CHECKSUM
   emptyLine = true;
+#endif
 }
 
 size_t GCodeSerial::write(uint8_t c)
 {
+#if USE_CRC16 || USE_CHECKSUM
   if (c == '\n')
   {
     if (!emptyLine)
@@ -30,7 +36,7 @@ size_t GCodeSerial::write(uint8_t c)
       crcVal %= 100;
       serial.write(crcVal/10 + '0');
       serial.write(crcVal % 10 + '0');
-#else
+#elif USE_CHECKSUM
       serial.print(checksum);
 #endif
       emptyLine = true;
@@ -43,7 +49,7 @@ size_t GCodeSerial::write(uint8_t c)
       ++lineNumber;
 #if USE_CRC16
       crc.Reset(0);
-#else
+#elif USE_CHECKSUM
       checksum = 0;
 #endif
       emptyLine = false;        // do this first to avoid infinite recursion
@@ -52,10 +58,11 @@ size_t GCodeSerial::write(uint8_t c)
     }
 #if USE_CRC16
     crc.Update(c);
-#else
+#elif USE_CHECKSUM
     checksum ^= c;
 #endif
   }
+#endif
   serial.write(c);
   return 1;
 }
