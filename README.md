@@ -31,6 +31,7 @@ upload_protocol = dfu
 - The Sparkfun Pro Micro board definition can be added to Arduino IDE via the board manager
 - Make sure to pick the 5V version in Tools->Processor. Uploading 3.3V code will temporarily brick the Arduino
 - The D-Sub CNC pendant PCB is here https://github.com/Autocrit/cnc_pendant_to_duet. The resistors are optional for Duet 3 hardware but *not* for BTT Scylla (the doc says: Note that exceeding 3.3V on either the TX or RX pins may cause damage to the controller). I'll add a screw terminal version at some point
+- Possible improvements: the RRF firmware has ```MinCommandInterval``` set to 20 meaning that jog commands can be sent 50 times/sec. grblHAL doesn't seem to like that hence the change to 50. Also need to learn more about the 0x8B MPG command - maybe only toggle it off when the pendant has been idle for some interval. 
 
 # CNC-Pendant-Firmware
 
