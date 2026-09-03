@@ -30,7 +30,7 @@ upload_protocol = dfu
 ```
 - The Sparkfun Pro Micro board definition can be added to Arduino IDE via the board manager
 - Make sure to pick the 5V version in Tools->Processor. Uploading 3.3V code will temporarily brick the Arduino
-- The D-Sub CNC pendant PCB is here https://github.com/Autocrit/cnc_pendant_to_duet. I'll add a screw terminal version at some point
+- The D-Sub CNC pendant PCB is here https://github.com/Autocrit/cnc_pendant_to_duet. The resistors are optional for Duet 3 hardware but *not* for BTT Scylla (the doc says: Note that exceeding 3.3V on either the TX or RX pins may cause damage to the controller). I'll add a screw terminal version at some point
 
 # CNC-Pendant-Firmware
 
