@@ -1,9 +1,92 @@
+## Notes for grblHAL
+
+- Compile grblHAL with ```#define MPG_ENABLE 2```. This can be defined in platformio.ini i.e. ```-D MPG_ENABLE=2``` in ```build_flags```.
+Testing with a BTT Scylla control board I used UART3 with rx pin PD9 and tx pin PD8. In grblHAL this is port 2 so I added ```-D MPG_STREAM=2``` to platformio.ini. The +5V required by the Arduino and the pendant can be taken from the adjacent IO-IN port.
+
+- The BTT Scylla entry in platformio.ini might look like:
+```
+# BTT Scylla (H723) with USB serial and Trinamic 5160 driver support
+[env:btt_scylla_h723_tmc5160]
+board = generic_stm32h723vg
+board_build.ldscript = STM32H723VGTX_FLASH.ld
+build_flags = ${common.build_flags}
+              ${usb_h723.build_flags}
+              ${sdcard.build_flags}
+  # See Inc/my_machine.h for options
+  -D BOARD_BTT_SCYLLA
+  -D HSE_VALUE=25000000
+  -D TRINAMIC_ENABLE=5160
+  -D MPG_ENABLE=2
+  -D MPG_STREAM=2
+lib_deps = ${common_h723.lib_deps}
+           ${usb_h723.lib_deps}
+           ${sdcard.lib_deps}
+           motors
+           trinamic
+lib_extra_dirs = ${common.lib_extra_dirs}
+                 ${usb_h723.lib_extra_dirs}
+                 ${sdcard.lib_extra_dirs}
+upload_protocol = dfu
+```
+- The Sparkfun Pro Micro board definition can be added to Arduino IDE via the board manager
+- Make sure to pick the 5V version in Tools->Processor. Uploading 3.3V code will temporarily brick the Arduino
+- The D-Sub CNC pendant PCB is here https://github.com/Autocrit/cnc_pendant_to_duet. I'll add a screw terminal version at some point
+
 # CNC-Pendant-Firmware
 
-Modified for grblHAL. Use the grblHAL branch
+This is firmware to run on an Arduino Pro Micro (preferred) or Arduino Nano to interface a popular style of wired CNC pendant to the PanelDue port of Duet electronics. Build it using Arduino IDE.
 
-## Credit
-Duet3D/dc42
+The code on the master branch send commands with checksums to RRF, suitable for older versions RRF. If you use the PanelDue pass-through facility then you need to use an older version of PanelDueFirmware that uses checksums, because it does not recognise CRCs from PanelDue.
+
+The code on the crc16 branch sends commands with CRC to RRF with a CRC instead. This works with newer versions of RRF and provides better integrity protection. If the PanelDue pass-through facility is used, it accepts either CRCs or checksums from PanelDue.
+
+For a full guide to building the pendant, see [the Duet3D wiki here](https://docs.duet3d.com/en/User_manual/Connecting_hardware/IO_CNC_Pendant).
+
+## Wiring
+
+Pendant to Arduino Pro Micro wiring:
+
+| Pro Micro | Pendant | Wire colours |
+|:----------|:--------|:-------------|
+| VCC       | +5V     | red          |
+| GND       | 0V<br>COM<br>CN<br>LED- | black<br>orange/black<br>blue/black<br>white/black | 
+| D2        | A       | green        | 
+| D3        | B       | white | 
+| D4        | X       | yellow | 
+| D5        | Y       | yellow/black | 
+| D6        | Z       | brown | 
+| D7        | 4       | brown/black | 
+| D8        | 5       | pink (if present) | 
+| D9        | 6       | pink/black (if present) | 
+| D10       | LED+    | green/black | 
+| A0        | STOP    | blue | 
+| A1        | X1      | grey | 
+| A2        | X10     | grey/black | 
+| A3        | X100    | orange | 
+| NC        | /A<br>/B | violet<br>violet/black | 
+
+Arduino Pro Micro to Duet 3 IO_0 connector or Duet 2 PanelDue connector wiring (3- or 4-core cable):
+
+| Pro Micro | Duet |
+|:----------|:-----|
+| VCC       | +5V (red wire) |
+| GND       | GND (yellow wire) |
+| TXO<br>GND | Through 6K8 resistor to IO_0_IN (Duet 3) or URXD0 (Duet 2)<br>Also connect 10K resistor between GND and IO_0_IN (Duet 3) or URXD0 (Duet 2) (blue wire from resistor junction to Duet) |
+
+To connect a PanelDue as well (the Arduino Pro Micro passes the PanelDue commands through to the Duet):
+
+| PanelDue | Pro Micro / Duet |
+|:---------|:-----------------|
+| +5V      | +5V/VCC (red wire to Ardiuno or Duet) |
+| GND      | GND (yellow wire to Ardiuno or Duet) |
+| DIN      | **Duet** IO_0_OUT (Duet 3) or UTXD0 (Duet 2) (green wire) |
+| DOUT     | **Pro Micro** RXI (blue wire of PanelDue cable to green wire of pendant cable) |
+
+For wiring differences and hardware changes needed if using an Arduino Nano, see the comments at the start of the CNC-pendant.ino file.
+
+## Support requests
+
+Please use the [forum](https://forum.duet3d.com) for support requests.
 
 ## See:
 [Duet3D pendant firmware](https://github.com/Duet3D/CNC-Pendant-Firmware)
