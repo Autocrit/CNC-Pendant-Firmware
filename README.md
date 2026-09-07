@@ -33,7 +33,7 @@ upload_protocol = dfu
 - The voltage divider resistors are optional with Duet 3 hardware but *not* with BTT Scylla (from the manual: *Note that exceeding 3.3V on either the TX or RX pins may cause damage to the controller*)
 - The D-Sub CNC pendant PCB is here https://github.com/Autocrit/cnc_pendant_to_duet. I'll add a screw terminal version at some point
 - Room for improvement:
-  - I had e-stop working but now it isn't 
+  - E-stop: neither 0x18 (reset) nor 0x19 (stop) act like an e-stop 
   - The RRF firmware has ```MinCommandInterval``` set to 20 meaning that jog commands can be sent 50 times/sec. grblHAL doesn't seem to like that hence the change to 50
   - Maybe only toggle off MPG mode (0x8B) after the pendant has been idle for some interval
   - Look into adding back the CRC16 error checking

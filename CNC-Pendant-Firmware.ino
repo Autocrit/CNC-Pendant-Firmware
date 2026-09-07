@@ -47,6 +47,10 @@ const char* const MoveCommands[] =
   "G91 G0 F6000 W"      // axis 6
 };
 
+const byte CMD_RESET = 0x18;
+const byte CMD_STOP = 0x19;
+const byte CMD_MPG = 0x8B;
+
 #include "RotaryEncoder.h"
 #include "GCodeSerial.h"
 
@@ -106,17 +110,19 @@ void loop()
     // Send emergency stop command every 2 seconds
     do
     {
-      output.write(0x19);
+      output.write(CMD_RESET);
       digitalWrite(PinLed, LOW);
       uint16_t now = (uint16_t)millis();
+      /*
       while (digitalRead(PinStop) == HIGH && (uint16_t)millis() - now < 2000)
       {
-        // Do nothing for now
       }
+      */
+      delay(2000);
       encoder.getChange();      // ignore any movement
     } while (digitalRead(PinStop) == HIGH);
 
-    output.write("$X\n");
+    //output.write('X');
   }
 
   digitalWrite(PinLed, HIGH);
@@ -163,7 +169,7 @@ void loop()
         TXLED0;                     // turn on transmit LED
 #endif
         whenLastCommandSent = now;
-        output.write(0x8B); // Toggle MPG mode on
+        output.write(CMD_MPG); // Toggle MPG mode on
         output.write(MoveCommands[axis]);
         if (distance < 0)
         {
@@ -174,7 +180,7 @@ void loop()
         output.write('.');
         output.print(distance % 10);
         output.write('\n');
-        output.write(0x8B); // Toggle MPG mode off
+        output.write(CMD_MPG); // Toggle MPG mode off
       }
     }
   }
