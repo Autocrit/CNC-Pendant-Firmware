@@ -50,6 +50,7 @@ const char* const MoveCommands[] =
 const byte CMD_RESET = 0x18;
 const byte CMD_STOP = 0x19;
 const byte CMD_MPG = 0x8B;
+const byte CMD_SOFT_ESTOP = 0x9F; // Requires https://github.com/grblHAL/core/commit/c48fc078883747d8a60b7dc145273d1181cf781d
 
 #include "RotaryEncoder.h"
 #include "GCodeSerial.h"
@@ -110,7 +111,9 @@ void loop()
     // Send emergency stop command every 2 seconds
     do
     {
-      output.write(CMD_RESET);
+      // Use CMD_RESET if CMD_SOFT_ESTOP not yet supported
+      //output.write(CMD_RESET);
+      output.write(CMD_SOFT_ESTOP);
       digitalWrite(PinLed, LOW);
       uint16_t now = (uint16_t)millis();
       /*
